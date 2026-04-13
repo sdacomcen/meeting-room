@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Room Lt.8</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent:        #A99EB7;
+  --accent-dark:   #7b6f93;
+  --accent-deeper: #5c5170;
+  --accent-light:  #c8c2d6;
+  --accent-faint:  #f2f0f6;
+  --accent-faintest: #f8f7fb;
+  --text:          #2a2435;
+  --text-2:        #655e75;
+  --text-3:        #a099ad;
+  --border:        #e3dfec;
+  --border-light:  #ede9f4;
+  --white:         #ffffff;
+  --bg:            #f9f8fc;
+  --red:           #b85466;
+  --red-faint:     #fdf1f3;
+  --green:         #4e9270;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: var(--accent-light); border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
+button, input, select, textarea { font-family: 'DM Sans', sans-serif; }
+
+/* ─── SETUP ─────────────────────────────────────────────────── */
+#setup-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.setup-box {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 20px; padding: 40px; width: 100%; max-width: 480px;
+  box-shadow: 0 8px 48px rgba(169,158,183,0.15);
+}
+.setup-icon { font-size: 28px; margin-bottom: 16px; }
+.setup-box h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.setup-box > p { font-size: 13px; color: var(--text-2); line-height: 1.6; margin-bottom: 28px; }
+.setup-sec h3 {
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light);
+}
+.setup-sec { margin-bottom: 22px; }
+.sf { margin-bottom: 10px; }
+.sf label { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
+.sf input {
+  width: 100%; padding: 10px 13px; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 13px; color: var(--text); outline: none; transition: border-color .15s;
+}
+.sf input:focus { border-color: var(--accent); }
+.sf input::placeholder { color: var(--text-3); }
+.hint {
+  font-size: 11px; color: var(--text-3); line-height: 1.6;
+  background: var(--accent-faint); border-radius: 8px; padding: 10px 12px; margin-top: 8px;
+}
+.hint a { color: var(--accent-dark); font-weight: 600; text-decoration: none; }
+.hint a:hover { text-decoration: underline; }
+#setup-btn {
+  width: 100%; background: var(--accent-dark); color: white; border: none;
+  border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: background .15s; margin-top: 4px;
+}
+#setup-btn:hover { background: var(--accent-deeper); }
+#setup-err { font-size: 12px; color: var(--red); margin-top: 8px; display: none; text-align: center; }
+
+/* ─── HEADER ─────────────────────────────────────────────────── */
+#app { display: none; }
+#hdr {
+  background: var(--white); border-bottom: 1.5px solid var(--border);
+  padding: 0 26px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 1px 10px rgba(169,158,183,0.07);
+}
+.hl { display: flex; align-items: center; gap: 11px; }
+.hicon {
+  width: 36px; height: 36px; background: var(--accent-faint);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+}
+.htitle { font-size: 16px; font-weight: 700; line-height: 1.15; }
+.hsub   { font-size: 11px; color: var(--text-3); font-weight: 500; margin-top: 1px; }
+.hr2 { display: flex; align-items: center; gap: 7px; }
+.wk-lbl { text-align: right; margin-right: 4px; }
+.wk-month { font-size: 13px; font-weight: 600; }
+.wk-rel   { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.nbtn {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--white);
+  color: var(--text-2); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.nbtn:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-faint); }
+.today-btn {
+  height: 34px; padding: 0 13px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--white);
+  color: var(--accent-dark); font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; cursor: pointer; transition: all .15s;
+}
+.today-btn:hover { border-color: var(--accent); background: var(--accent-faint); }
+.admin-badge {
+  height: 34px; padding: 0 12px; border-radius: 8px;
+  background: var(--accent-faint); border: 1.5px solid var(--accent-light);
+  color: var(--accent-dark); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; gap: 5px;
+}
+.admin-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-dark); flex-shrink: 0; }
+.lock-btn {
+  height: 34px; padding: 0 12px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--white);
+  color: var(--text-3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.lock-btn:hover { background: var(--bg); }
+
+/* ─── GRID ───────────────────────────────────────────────────── */
+#cal-wrap { overflow-x: auto; padding-bottom: 80px; }
+#grid { min-width: 660px; }
+#day-hdrs {
+  display: grid; grid-template-columns: 52px repeat(5,1fr);
+  border-bottom: 1.5px solid var(--border);
+  position: sticky; top: 64px; background: var(--white); z-index: 100;
+}
+.dh0 { border-right: 1px solid var(--border-light); }
+.dhc { padding: 12px 0 10px; text-align: center; border-left: 1px solid var(--border-light); }
+.dhc .dn { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 5px; }
+.dhc .dd { width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 500; color: var(--text-2); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+.dhc.today .dn { color: var(--accent-dark); }
+.dhc.today .dd { background: var(--accent); color: white; font-weight: 700; }
+
+.trow { display: grid; grid-template-columns: 52px repeat(5,1fr); border-bottom: 1px solid var(--border-light); }
+.tlbl { height: 58px; display: flex; align-items: flex-start; padding: 7px 10px 0; border-right: 1px solid var(--border-light); }
+.tlbl span { font-size: 10px; font-weight: 600; color: var(--text-3); }
+.slot { border-left: 1px solid var(--border-light); height: 58px; position: relative; transition: background .12s; }
+.slot.ok { cursor: pointer; }
+.slot.ok:hover { background: var(--accent-faint); }
+.slot.past { background: #fafafa; opacity: .4; pointer-events: none; }
+.ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .12s; color: var(--accent); font-size: 22px; font-weight: 300; pointer-events: none; }
+.slot.ok:hover .ph { opacity: 1; }
+
+.chip {
+  position: absolute; left: 3px; right: 3px; top: 3px;
+  border-radius: 7px; overflow: hidden; cursor: pointer; z-index: 2;
+  background: linear-gradient(135deg, #edeaf5, #e3dff0);
+  border: 1px solid var(--accent-light); border-left: 3px solid var(--accent-dark);
+  padding: 6px 9px; transition: box-shadow .15s, transform .1s;
+  animation: chi .18s ease;
+}
+.chip:hover { box-shadow: 0 3px 14px rgba(169,158,183,.28); transform: translateY(-1px); }
+.chip .ct { font-size: 11px; font-weight: 700; color: var(--accent-deeper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip .cm { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+.chip .cu { font-size: 10px; color: var(--accent-dark); font-weight: 500; margin-top: 1px; }
+
+/* ─── MODALS ─────────────────────────────────────────────────── */
+.bd {
+  position: fixed; inset: 0; background: rgba(42,36,53,.28);
+  backdrop-filter: blur(5px); z-index: 500;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  animation: fdi .15s ease;
+}
+.modal {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 28px; width: 100%; max-width: 420px;
+  box-shadow: 0 20px 60px rgba(169,158,183,.22);
+  animation: mdi .2s ease;
+}
+.mhdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.mtitle { font-size: 19px; font-weight: 700; }
+.msub   { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+.xbtn {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--bg);
+  color: var(--text-3); font-size: 17px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.xbtn:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+.fld { margin-bottom: 12px; }
+.fld label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 5px; }
+.fld input, .fld select {
+  width: 100%; padding: 10px 13px; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 13px; color: var(--text); outline: none; transition: border-color .15s;
+}
+.fld input:focus, .fld select:focus { border-color: var(--accent); }
+.fld input::placeholder { color: var(--text-3); }
+
+.warn { background: #fff8f0; border: 1px solid #f5d9bc; border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 12px; color: #b07040; font-weight: 500; }
+.errb { background: var(--red-faint); border: 1px solid #f0c4cc; border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 12px; color: var(--red); font-weight: 500; display: none; }
+
+.brow { display: flex; gap: 9px; margin-top: 18px; }
+.btn { flex: 1; height: 42px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s; border: none; }
+.btn-g { background: var(--bg); border: 1.5px solid var(--border) !important; color: var(--text-2); }
+.btn-g:hover { border-color: var(--accent) !important; }
+.btn-p { background: var(--accent-dark); color: white; flex: 2; }
+.btn-p:hover:not(:disabled) { background: var(--accent-deeper); }
+.btn-p:disabled { background: var(--border); color: var(--text-3); cursor: not-allowed; }
+.btn-d { background: var(--red-faint); color: var(--red); border: 1.5px solid #f0c4cc !important; }
+.btn-d:hover { background: #fce8ec; }
+
+.drow2 { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+.dlbl { font-size: 11px; font-weight: 600; color: var(--text-3); min-width: 78px; padding-top: 1px; }
+.dval { font-size: 13px; color: var(--text); line-height: 1.45; }
+
+/* ─── FOOTER ─────────────────────────────────────────────────── */
+#fl {
+  position: fixed; bottom: 18px; left: 22px;
+  background: var(--white); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 8px 14px; box-shadow: 0 2px 12px rgba(169,158,183,.1);
+  display: flex; align-items: center; gap: 11px;
+  font-size: 11px; color: var(--text-3); font-weight: 500;
+}
+.lc { display: flex; align-items: center; gap: 6px; }
+.lc-bk { width: 12px; height: 12px; border-radius: 3px; background: #edeaf5; border-left: 3px solid var(--accent-dark); flex-shrink:0; }
+.lc-fr { width: 12px; height: 12px; border-radius: 3px; background: var(--accent-faintest); border: 1.5px dashed var(--border); flex-shrink:0; }
+.ldiv  { width: 1px; height: 13px; background: var(--border); }
+#fr {
+  position: fixed; bottom: 18px; right: 22px;
+  background: var(--accent-faint); border: 1.5px solid var(--accent-light); border-radius: 10px;
+  padding: 8px 14px; box-shadow: 0 2px 12px rgba(169,158,183,.1);
+  font-size: 12px; color: var(--accent-dark); font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+.puls { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pls 2s infinite; }
+
+/* ─── TOAST ──────────────────────────────────────────────────── */
+#toast {
+  position: fixed; top: 76px; right: 18px; z-index: 9000;
+  border-radius: 10px; padding: 11px 16px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,.09); display: none; animation: fdi .2s ease;
+}
+#toast.ok  { background: #edf7f2; color: var(--green); border: 1px solid #b6dfc9; }
+#toast.err { background: var(--red-faint); color: var(--red); border: 1px solid #f0c4cc; }
+
+/* ─── LOADING ─────────────────────────────────────────────────── */
+#gload {
+  position: absolute; inset: 0; background: rgba(249,248,252,.8);
+  backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.spin { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: sp .65s linear infinite; }
+
+@keyframes fdi { from{opacity:0}to{opacity:1} }
+@keyframes mdi { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+@keyframes chi { from{opacity:0;transform:scaleY(.85)}to{opacity:1;transform:scaleY(1)} }
+@keyframes sp  { to{transform:rotate(360deg)} }
+@keyframes pls { 0%,100%{opacity:1}50%{opacity:.35} }
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP OVERLAY ════════════════════════════════════════════ -->
+<div id="setup-overlay">
+  <div class="setup-box">
+    <div class="setup-icon">🗓️</div>
+    <h1>Meeting Room Lt.8 — Setup</h1>
+    <p>Connect a Google Calendar and set an admin password. This only needs to be done once — all settings are saved in your browser.</p>
+
+    <div class="setup-sec">
+      <h3>Google Calendar</h3>
+      <div class="sf">
+        <label>Calendar ID</label>
+        <input id="s-cal" type="text" placeholder="xxxx@group.calendar.google.com" spellcheck="false" autocomplete="off" />
+      </div>
+      <div class="sf">
+        <label>API Key (read-only)</label>
+        <input id="s-key" type="text" placeholder="AIzaSy..." spellcheck="false" autocomplete="off" />
+      </div>
+      <div class="sf">
+        <label>Apps Script Web App URL (write)</label>
+        <input id="s-ws" type="text" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false" autocomplete="off" />
+      </div>
+      <div class="hint">
+        <strong>Step 1 —</strong> In <a href="https://calendar.google.com" target="_blank">Google Calendar</a>, create a new calendar named <em>Meeting Room Lt.8</em>. In its Settings, enable <strong>Make available to public</strong>. Copy its <strong>Calendar ID</strong>.<br><br>
+        <strong>Step 2 —</strong> In <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a> → Credentials → create an <strong>API Key</strong> → restrict it to <strong>Google Calendar API</strong>.<br><br>
+        <strong>Step 3 —</strong> In <a href="https://script.google.com" target="_blank">Google Apps Script</a>, create a new project and paste the Apps Script code (see below). Deploy it as a <strong>Web App</strong> → Execute as <em>Me</em> → Who has access: <em>Anyone</em>. Copy the Web App URL.
+      </div>
+    </div>
+
+    <div class="setup-sec">
+      <h3>Admin Password</h3>
+      <div class="sf">
+        <label>Password</label>
+        <input id="s-pw" type="password" placeholder="Only you will use this to create / cancel bookings" />
+      </div>
+      <div class="hint">Anyone with the page link can <strong>view</strong> bookings. Only someone who enters this password can <strong>create or cancel</strong> them.</div>
+    </div>
+
+    <div id="setup-err">Please fill in all fields.</div>
+    <button id="setup-btn" onclick="saveSetup()">Save & Open Booking Page</button>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ═════════════════════════════════════════════════ -->
+<div id="app">
+
+  <div id="hdr">
+    <div class="hl">
+      <div class="hicon">🗓️</div>
+      <div>
+        <div class="htitle">Meeting Room Lt.8</div>
+        <div class="hsub">Mon – Fri · 08:00 – 17:00</div>
+      </div>
+    </div>
+    <div class="hr2">
+      <div class="wk-lbl">
+        <div class="wk-month" id="hm">—</div>
+        <div class="wk-rel"   id="hr">—</div>
+      </div>
+      <button class="nbtn"      onclick="shiftWeek(-1)">‹</button>
+      <button class="today-btn" onclick="goToday()">TODAY</button>
+      <button class="nbtn"      onclick="shiftWeek(1)">›</button>
+      <div id="adm-area"></div>
+    </div>
+  </div>
+
+  <div id="cal-wrap">
+    <div id="grid">
+      <div id="day-hdrs"></div>
+      <div id="trows" style="position:relative">
+        <div id="gload"><div class="spin"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fl">
+    <div class="lc"><div class="lc-bk"></div> Booked</div>
+    <div class="ldiv"></div>
+    <div class="lc"><div class="lc-fr"></div> Available</div>
+  </div>
+  <div id="fr"><div class="puls"></div><span id="fcount">0 bookings this week</span></div>
+</div>
+
+<!-- ══ BOOK MODAL ═══════════════════════════════════════════════ -->
+<div id="bm" class="bd" style="display:none" onclick="if(event.target===this)closeBook()">
+  <div class="modal">
+    <div class="mhdr">
+      <div><div class="mtitle">New Booking</div><div class="msub" id="bslot">—</div></div>
+      <button class="xbtn" onclick="closeBook()">×</button>
+    </div>
+    <div id="bconflict" class="warn" style="display:none">⚠ Slot overlaps an existing booking.</div>
+    <div id="bnoauth"   class="warn" style="display:none">🔑 Tap the key icon in the header to unlock admin access first.</div>
+    <div id="berr"      class="errb"></div>
+    <div class="fld"><label>Your Name *</label>   <input id="b-name"    type="text" placeholder="Full name" /></div>
+    <div class="fld"><label>Purpose *</label>      <input id="b-purpose" type="text" placeholder="e.g. Team standup, Client meeting…" /></div>
+    <div class="fld"><label>Duration</label>       <select id="b-dur"></select></div>
+    <div class="fld"><label>Note (optional)</label><input id="b-note"    type="text" placeholder="Any additional info" /></div>
+    <div class="brow">
+      <button class="btn btn-g" onclick="closeBook()">Cancel</button>
+      <button class="btn btn-p" id="bcbtn" onclick="confirmBook()">Confirm Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EVENT MODAL ══════════════════════════════════════════════ -->
+<div id="em" class="bd" style="display:none" onclick="if(event.target===this)closeEvent()">
+  <div class="modal">
+    <div class="mhdr">
+      <div><div class="mtitle" id="etitle">—</div><div class="msub" style="color:var(--accent-dark)">Meeting Room Lt.8</div></div>
+      <button class="xbtn" onclick="closeEvent()">×</button>
+    </div>
+    <div id="edetails"></div>
+    <div class="brow">
+      <button class="btn btn-g"              onclick="closeEvent()">Close</button>
+      <button class="btn btn-d" id="ecbtn"   onclick="cancelEvent()" style="display:none">Cancel Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN MODAL ══════════════════════════════════════════════ -->
+<div id="am" class="bd" style="display:none" onclick="if(event.target===this)closeAdm()">
+  <div class="modal" style="max-width:340px">
+    <div class="mhdr">
+      <div><div class="mtitle">Admin Access</div><div class="msub">Enter password to create or cancel bookings</div></div>
+      <button class="xbtn" onclick="closeAdm()">×</button>
+    </div>
+    <div class="fld"><label>Password</label><input id="apw" type="password" placeholder="Admin password" onkeydown="if(event.key==='Enter')checkAdm()" /></div>
+    <div id="aerr" class="errb">Incorrect password.</div>
+    <div class="brow">
+      <button class="btn btn-g" onclick="closeAdm()">Cancel</button>
+      <button class="btn btn-p" onclick="checkAdm()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const ROOM   = "Meeting Room Lt.8";
+const TAG    = "[ROOM-LT8]";
+const TZ     = "Asia/Jakarta";
+const HOURS  = Array.from({length:9},(_,i)=>i+8);
+const WDAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+let CFG={}, isAdm=false, wkOff=0, bookings=[], slot=null, curEv=null;
+const TODAY = new Date();
+
+// ── SHA-256 ───────────────────────────────────────────────────
+async function sha(s){
+  const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+// ── SETUP ─────────────────────────────────────────────────────
+window.onload=()=>{
+  try{ const s=localStorage.getItem("rmlt8"); if(s){CFG=JSON.parse(s);showApp();} }catch(e){}
+};
+
+async function saveSetup(){
+  const cal=document.getElementById("s-cal").value.trim();
+  const key=document.getElementById("s-key").value.trim();
+  const ws =document.getElementById("s-ws").value.trim();
+  const pw =document.getElementById("s-pw").value;
+  const e  =document.getElementById("setup-err");
+  if(!cal||!key||!pw){e.style.display="block";e.textContent="Please fill in Calendar ID, API Key, and password.";return;}
+  CFG={cal,key,ws,hash:await sha(pw)};
+  localStorage.setItem("rmlt8",JSON.stringify(CFG));
+  showApp();
+}
+
+function showApp(){
+  document.getElementById("setup-overlay").style.display="none";
+  document.getElementById("app").style.display="block";
+  render();
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+function openAdm(){
+  document.getElementById("apw").value="";
+  document.getElementById("aerr").style.display="none";
+  document.getElementById("am").style.display="flex";
+  setTimeout(()=>document.getElementById("apw").focus(),80);
+}
+function closeAdm(){document.getElementById("am").style.display="none";}
+async function checkAdm(){
+  const h=await sha(document.getElementById("apw").value);
+  if(h===CFG.hash){isAdm=true;closeAdm();renderAdm();toast("Admin unlocked ✓","ok");}
+  else document.getElementById("aerr").style.display="block";
+}
+function lockAdm(){isAdm=false;renderAdm();toast("Locked.","ok");}
+function renderAdm(){
+  const el=document.getElementById("adm-area");
+  el.innerHTML=isAdm
+    ?`<div class="admin-badge"><div class="dot"></div>Admin</div><button class="lock-btn" onclick="lockAdm()">🔒 Lock</button>`
+    :`<button class="nbtn" title="Admin login" onclick="openAdm()" style="font-size:14px">🔑</button>`;
+}
+
+// ── DATE UTILS ────────────────────────────────────────────────
+function weekDates(off){
+  const b=new Date(TODAY); b.setDate(TODAY.getDate()+off*7);
+  const m=new Date(b); m.setDate(b.getDate()-b.getDay()+1);
+  return Array.from({length:5},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});
+}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function fmtISO(d,h=0,mi=0){const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(h)}:${p(mi)}:00`;}
+function fmtT(s){if(!s)return"—";const d=new Date(s);return d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false});}
+function fmtD(s){if(!s)return"—";return new Date(s).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function parseD(d){return(d||"").split("\n").reduce((a,l)=>{const i=l.indexOf(": ");if(i>0)a[l.slice(0,i).trim()]=l.slice(i+2).trim();return a;},{});}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){
+  const wd=weekDates(wkOff);
+  const f=wd[0],l=wd[4];
+  document.getElementById("hm").textContent=f.getMonth()===l.getMonth()?`${MONTHS[f.getMonth()]} ${f.getFullYear()}`:`${MONTHS[f.getMonth()]} – ${MONTHS[l.getMonth()]} ${l.getFullYear()}`;
+  document.getElementById("hr").textContent=wkOff===0?"This week":wkOff===1?"Next week":wkOff===-1?"Last week":`Week ${wkOff>0?"+":""}${wkOff}`;
+
+  document.getElementById("day-hdrs").innerHTML=`<div class="dh0"></div>`+wd.map(d=>{
+    const it=sameDay(d,TODAY);
+    return`<div class="dhc${it?" today":""}"><div class="dn">${WDAYS[d.getDay()]}</div><div class="dd">${d.getDate()}</div></div>`;
+  }).join("");
+
+  const tr=document.getElementById("trows");
+  tr.innerHTML=`<div id="gload"><div class="spin"></div></div>`;
+  tr.innerHTML+=HOURS.map(h=>`
+    <div class="trow">
+      <div class="tlbl"><span>${String(h).padStart(2,"0")}:00</span></div>
+      ${wd.map((d,di)=>{
+        const past=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h+1,0)<TODAY;
+        return`<div class="slot${past?"":" ok"}${past?" past":""}" id="s-${di}-${h}" onclick="handleSlot(${d.getFullYear()},${d.getMonth()},${d.getDate()},${h})">${past?"":(`<div class="ph">+</div>`)}</div>`;
+      }).join("")}
+    </div>`).join("");
+
+  renderAdm();
+  fetchBk(wd);
+}
+
+// ── FETCH ─────────────────────────────────────────────────────
+async function fetchBk(wd){
+  showLoad(true);
+  const tMin=fmtISO(wd[0],0,0)+"+07:00";
+  const tMax=fmtISO(wd[4],23,59)+"+07:00";
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CFG.cal)}/events?`
+    +new URLSearchParams({key:CFG.key,timeMin:tMin,timeMax:tMax,q:TAG,singleEvents:true,orderBy:"startTime",maxResults:200});
+  try{
+    const r=await fetch(url);
+    if(!r.ok){const t=await r.text();throw new Error(t);}
+    const data=await r.json();
+    bookings=(data.items||[]).filter(e=>(e.summary||"").includes(TAG)||(e.description||"").includes(TAG));
+    renderChips(wd);
+    document.getElementById("fcount").textContent=`${bookings.length} booking${bookings.length!==1?"s":""} this week`;
+  }catch(e){
+    console.error(e);
+    toast("Could not load bookings. Check Calendar ID & API Key.","err");
+  }
+  showLoad(false);
+}
+
+function renderChips(wd){
+  bookings.forEach(ev=>{
+    const s=new Date(ev.start.dateTime||ev.start.date);
+    const e=new Date(ev.end.dateTime||ev.end.date);
+    const di=wd.findIndex(d=>sameDay(d,s));
+    if(di<0)return;
+    const h=s.getHours();
+    const span=Math.max(1,Math.round((e-s)/3600000));
+    const cell=document.getElementById(`s-${di}-${h}`);
+    if(!cell)return;
+    for(let hh=h+1;hh<h+span;hh++){
+      const sc=document.getElementById(`s-${di}-${hh}`);
+      if(sc){sc.classList.remove("ok");sc.onclick=null;}
+    }
+    const L=parseD(ev.description||"");
+    const ch=document.createElement("div");
+    ch.className="chip";
+    ch.style.height=(span*58-6)+"px";
+    ch.innerHTML=`<div class="ct">${esc(L.Purpose||ev.summary.replace(TAG,"").trim())}</div><div class="cm">${fmtT(ev.start.dateTime)} – ${fmtT(ev.end.dateTime)}</div><div class="cu">${esc(L["Booked by"]||"")}</div>`;
+    ch.onclick=ex=>{ex.stopPropagation();openEvent(ev);};
+    cell.appendChild(ch);
+  });
+}
+
+// ── SLOT CLICK ────────────────────────────────────────────────
+function handleSlot(y,m,d,h){
+  slot={date:new Date(y,m,d,h,0,0),hour:h};
+  const conflict=bookings.some(b=>{
+    const bs=new Date(b.start.dateTime),be=new Date(b.end.dateTime);
+    const ss=new Date(y,m,d,h,0,0),se=new Date(ss.getTime()+3600000);
+    return bs<se&&be>ss;
+  });
+  const maxH=17-h;
+  document.getElementById("b-dur").innerHTML=Array.from({length:maxH},(_,i)=>i+1).map(n=>`<option value="${n}">${n} hour${n>1?"s":""} · ends ${String(h+n).padStart(2,"0")}:00</option>`).join("");
+  document.getElementById("bslot").textContent=slot.date.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})+` · ${String(h).padStart(2,"0")}:00`;
+  document.getElementById("bconflict").style.display=conflict?"block":"none";
+  document.getElementById("bnoauth").style.display=isAdm?"none":"block";
+  document.getElementById("berr").style.display="none";
+  document.getElementById("bcbtn").disabled=conflict||!isAdm;
+  document.getElementById("b-name").value=document.getElementById("b-purpose").value=document.getElementById("b-note").value="";
+  document.getElementById("bm").style.display="flex";
+}
+function closeBook(){document.getElementById("bm").style.display="none";slot=null;}
+
+async function confirmBook(){
+  const name=document.getElementById("b-name").value.trim();
+  const purp=document.getElementById("b-purpose").value.trim();
+  const note=document.getElementById("b-note").value.trim();
+  const dur=parseInt(document.getElementById("b-dur").value);
+  const ee=document.getElementById("berr");
+  if(!name||!purp){ee.textContent="Please fill in your name and purpose.";ee.style.display="block";return;}
+  ee.style.display="none";
+  const btn=document.getElementById("bcbtn");
+  btn.textContent="Booking…";btn.disabled=true;
+
+  const {date,hour}=slot;
+  const sdt=fmtISO(date,hour,0);
+  const edt=fmtISO(new Date(date.getTime()+dur*3600000),hour+dur,0);
+  const body={
+    action:"create",calendarId:CFG.cal,
+    summary:`${TAG} ${purp}`,
+    description:`Room: ${ROOM}\nBooked by: ${name}\nPurpose: ${purp}\nNote: ${note||"-"}`,
+    location:ROOM, colorId:"1",
+    start:{dateTime:sdt+"+07:00",timeZone:TZ},
+    end:  {dateTime:edt+"+07:00",timeZone:TZ},
+  };
+
+  try{
+    if(!CFG.ws)throw new Error("no_ws");
+    const r=await fetch(CFG.ws,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(!data.success)throw new Error(data.error||"failed");
+    closeBook();toast("Room booked! ✓","ok");render();
+  }catch(e){
+    console.error(e);
+    ee.textContent=e.message==="no_ws"?"Apps Script URL not set in setup.":"Booking failed. Check your Apps Script URL.";
+    ee.style.display="block";
+    btn.textContent="Confirm Booking";btn.disabled=false;
+  }
+}
+
+// ── EVENT DETAIL ──────────────────────────────────────────────
+function openEvent(ev){
+  curEv=ev;
+  const L=parseD(ev.description||"");
+  document.getElementById("etitle").textContent=(L.Purpose||ev.summary||"").replace(TAG,"").trim();
+  document.getElementById("edetails").innerHTML=[
+    ["🕐 Time",`${fmtT(ev.start.dateTime)} – ${fmtT(ev.end.dateTime)}`],
+    ["📅 Date", fmtD(ev.start.dateTime)],
+    ["👤 Booked by",L["Booked by"]||"—"],
+    ["💬 Note",L["Note"]||"—"],
+  ].map(([l,v])=>`<div class="drow2"><span class="dlbl">${l}</span><span class="dval">${esc(v)}</span></div>`).join("");
+  const cb=document.getElementById("ecbtn");
+  cb.style.display=isAdm?"block":"none";
+  cb.textContent="Cancel Booking";cb.disabled=false;
+  document.getElementById("em").style.display="flex";
+}
+function closeEvent(){document.getElementById("em").style.display="none";curEv=null;}
+
+async function cancelEvent(){
+  if(!curEv||!isAdm)return;
+  if(!confirm("Cancel this booking?"))return;
+  const btn=document.getElementById("ecbtn");
+  btn.textContent="Cancelling…";btn.disabled=true;
+  try{
+    if(!CFG.ws)throw new Error("no_ws");
+    const r=await fetch(CFG.ws,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",calendarId:CFG.cal,eventId:curEv.id})});
+    const data=await r.json();
+    if(!data.success)throw new Error(data.error||"failed");
+    closeEvent();toast("Booking cancelled.","err");render();
+  }catch(e){
+    btn.textContent="Cancel Booking";btn.disabled=false;
+    toast(e.message==="no_ws"?"Apps Script URL not set.":"Delete failed. Check Apps Script URL.","err");
+  }
+}
+
+function shiftWeek(n){wkOff+=n;render();}
+function goToday(){wkOff=0;render();}
+function showLoad(v){const e=document.getElementById("gload");if(e)e.style.display=v?"flex":"none";}
+function toast(msg,type="ok"){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className=type;t.style.display="block";
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.display="none",3500);
+}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){closeBook();closeEvent();closeAdm();}
+});
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APPS SCRIPT CODE — paste this into script.google.com
+     New Project → paste → Deploy → Web App →
+       Execute as: Me
+       Who has access: Anyone
+     Copy the Web App URL into the setup screen above.
+  ════════════════════════════════════════════════════════════
+
+function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var cal  = CalendarApp.getCalendarById(data.calendarId);
+
+  if (data.action === "create") {
+    var start = new Date(data.start.dateTime);
+    var end   = new Date(data.end.dateTime);
+    var ev = cal.createEvent(data.summary, start, end, {
+      description: data.description,
+      location:    data.location
+    });
+    return ContentService
+      .createTextOutput(JSON.stringify({success:true, id:ev.getId()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (data.action === "delete") {
+    var ev = cal.getEventById(data.eventId);
+    if (ev) ev.deleteEvent();
+    return ContentService
+      .createTextOutput(JSON.stringify({success:true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({success:false, error:"unknown action"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({status:"ok"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+  ════════════════════════════════════════════════════════════ -->
+</body>
+</html>
