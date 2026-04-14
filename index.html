@@ -55,9 +55,9 @@ button, input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .lock-btn { height: 34px; padding: 0 12px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--white); color: var(--text-3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; }
 .lock-btn:hover { background: var(--bg); }
 
-#cal-wrap { overflow-x: auto; padding-bottom: 80px; }
+#cal-wrap { overflow-x: auto; padding-bottom: 80px; scroll-padding-top: 128px; }
 #grid { min-width: 660px; }
-#day-hdrs { display: grid; grid-template-columns: 52px repeat(5,1fr); border-bottom: 1.5px solid var(--border); position: sticky; top: 64px; background: var(--white); z-index: 100; }
+#day-hdrs { display: grid; grid-template-columns: 52px repeat(5,1fr); border-bottom: 1.5px solid var(--border); position: sticky; top: 0; background: var(--white); z-index: 100; }
 .dh0 { border-right: 1px solid var(--border-light); }
 .dhc { padding: 12px 0 10px; text-align: center; border-left: 1px solid var(--border-light); }
 .dhc .dn { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 5px; }
@@ -244,7 +244,7 @@ const CFG = {
 const ADMIN_PW_HASH_TARGET = "7d7a24fd1ad62f6c4992cad90420e3b5f4237c2cdba511ae021850266239b864";
 
 let isAdm=false, wkOff=0, bookings=[], slot=null, curEv=null;
-const TODAY = new Date();
+const TODAY = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Jakarta"}));
 
 async function sha(s){
   const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
@@ -274,9 +274,9 @@ function weekDates(off){
   return Array.from({length:5},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});
 }
 function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
-function fmtISO(d,h=0,mi=0){const p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(h)}:${p(mi)}:00`;}
-function fmtT(s){if(!s)return"—";const d=new Date(s);return d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false});}
-function fmtD(s){if(!s)return"—";return new Date(s).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});}
+function fmtISO(d,h=0,mi=0){const p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(h)}:${p(mi)}:00+07:00`;}
+function fmtT(s){if(!s)return"—";return new Date(s).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"});}
+function fmtD(s){if(!s)return"—";return new Date(s).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric",timeZone:"Asia/Jakarta"});}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function parseD(d){return(d||"").split("\n").reduce((a,l)=>{const i=l.indexOf(": ");if(i>0)a[l.slice(0,i).trim()]=l.slice(i+2).trim();return a;},{});}
 
@@ -290,12 +290,14 @@ function render(){
     return`<div class="dhc${it?" today":""}"><div class="dn">${WDAYS[d.getDay()]}</div><div class="dd">${d.getDate()}</div></div>`;
   }).join("");
   const tr=document.getElementById("trows");
-  tr.innerHTML=`<div id="gload"><div class="spin"></div></div>`;
-  tr.innerHTML+=HOURS.map(h=>`
+  const nowJkt=new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Jakarta"}));
+  const nowMs=nowJkt.getTime();
+  tr.innerHTML=`<div id="gload"><div class="spin"></div></div>`+HOURS.map(h=>`
     <div class="trow">
       <div class="tlbl"><span>${String(h).padStart(2,"0")}:00</span></div>
       ${wd.map((d,di)=>{
-        const past=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h+1,0)<TODAY;
+        const slotMs=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate(),h-7,0);
+        const past=slotMs<nowMs;
         return`<div class="slot${past?"":" ok"}${past?" past":""}" id="s-${di}-${h}" onclick="handleSlot(${d.getFullYear()},${d.getMonth()},${d.getDate()},${h})">${past?"":(`<div class="ph">+</div>`)}</div>`;
       }).join("")}
     </div>`).join("");
@@ -305,8 +307,8 @@ function render(){
 
 async function fetchBk(wd){
   showLoad(true);
-  const tMin=fmtISO(wd[0],0,0)+"+07:00";
-  const tMax=fmtISO(wd[4],23,59)+"+07:00";
+  const tMin=fmtISO(wd[0],0,0);
+  const tMax=fmtISO(wd[4],23,59);
   const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CFG.cal)}/events?`
     +new URLSearchParams({key:CFG.key,timeMin:tMin,timeMax:tMax,q:TAG,singleEvents:true,orderBy:"startTime",maxResults:200});
   try{
@@ -327,9 +329,10 @@ function renderChips(wd){
   bookings.forEach(ev=>{
     const s=new Date(ev.start.dateTime||ev.start.date);
     const e=new Date(ev.end.dateTime||ev.end.date);
-    const di=wd.findIndex(d=>sameDay(d,s));
+    const sJkt=new Date(s.toLocaleString("en-US",{timeZone:"Asia/Jakarta"}));
+    const di=wd.findIndex(d=>sameDay(d,sJkt));
     if(di<0)return;
-    const h=s.getHours();
+    const h=parseInt(new Date(s).toLocaleString("en-US",{hour:"numeric",hour12:false,timeZone:"Asia/Jakarta"}));
     const span=Math.max(1,Math.round((e-s)/3600000));
     const cell=document.getElementById(`s-${di}-${h}`);
     if(!cell)return;
@@ -375,8 +378,9 @@ async function confirmBook(){
   btn.textContent="Booking…";btn.disabled=true;
   const{date,hour}=slot;
   const sdt=fmtISO(date,hour,0);
-  const edt=fmtISO(new Date(date.getTime()+dur*3600000),hour+dur,0);
-  const body={action:"create",calendarId:CFG.cal,summary:`${TAG} ${purp}`,description:`Room: ${ROOM}\nBooked by: ${name}\nPurpose: ${purp}\nNote: ${note||"-"}`,location:ROOM,colorId:"1",start:{dateTime:sdt+"+07:00",timeZone:TZ},end:{dateTime:edt+"+07:00",timeZone:TZ}};
+  const endDate=new Date(date.getFullYear(),date.getMonth(),date.getDate(),hour+dur,0,0);
+  const edt=fmtISO(endDate,hour+dur,0);
+  const body={action:"create",calendarId:CFG.cal,summary:`${TAG} ${purp}`,description:`Room: ${ROOM}\nBooked by: ${name}\nPurpose: ${purp}\nNote: ${note||"-"}`,location:ROOM,colorId:"1",start:{dateTime:sdt,timeZone:TZ},end:{dateTime:edt,timeZone:TZ}};
   try{
     const r=await fetch(CFG.ws,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     const data=await r.json();
